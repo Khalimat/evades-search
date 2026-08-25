@@ -170,9 +170,15 @@ def build_parser() -> argparse.ArgumentParser:
     p_hmm.set_defaults(func=cmd_hmm)
 
     p_struct = sub.add_parser(
-        "structure", help="Search a predicted structure against the EVADES Foldseek database.",
+        "structure", help="Search one or more predicted structures against the EVADES "
+                          "Foldseek database.",
     )
-    p_struct.add_argument("structure", type=Path, help="Query structure file (.pdb or .cif).")
+    p_struct.add_argument(
+        "structure", type=Path, nargs="+",
+        help="Query structure file(s) (.pdb/.cif) and/or directories of them — "
+             "e.g. `evades-search structure my_structures/` searches every "
+             "structure under that directory in one batched run.",
+    )
     p_struct.add_argument(
         "--tm-score-min", type=float, default=foldseek.DEFAULT_TM_SCORE_MIN,
         help=f"Minimum TM-score to keep a hit (default: {foldseek.DEFAULT_TM_SCORE_MIN}).",

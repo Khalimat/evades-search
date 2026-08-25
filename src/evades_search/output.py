@@ -13,7 +13,7 @@ HMM_COLUMNS = [
     "hmm_from", "hmm_to", "ali_from", "ali_to",
 ]
 FOLDSEEK_COLUMNS = [
-    "query", "adp", "moa", "defence", "seq_identity", "aln_len", "prob", "tm_score",
+    "query", "query_file", "adp", "moa", "defence", "seq_identity", "aln_len", "prob", "tm_score",
 ]
 
 

@@ -1,13 +1,13 @@
 # evades-search
 
-Command-line search of the EVADES
-anti-defence protein database: an HMM profile search
-([HMMER](http://hmmer.org/) `hmmsearch`) and a structural search
-([Foldseek](https://github.com/steineggerlab/foldseek)), run locally and
-offline against a downloaded copy of the database. No account, no
-upload, no size limits beyond your own machine — useful for batch
-searches, pipeline integration, or working with sequences/structures you
-don't want to upload anywhere.
+A command-line tool to search EVADES (Encyclopaedia of bacterial virus
+anti-defence systems) locally, using
+[HMMER](http://hmmer.org/) `hmmsearch` for protein sequences and
+[Foldseek](https://github.com/steineggerlab/foldseek) for structures.
+
+- `hmm` takes a protein FASTA (single- or multi-sequence).
+- `structure` takes one or more `.pdb`/`.cif` files, or a directory of
+  them, including multi-chain/multimer structures.
 
 Results match the EVADES website's "Analyse" tab: same database, same
 default thresholds, same hit-collapsing rules for multimeric/NMR
@@ -19,36 +19,24 @@ structures.
 - [HMMER](http://hmmer.org/) (`hmmsearch`, `hmmpress`)
 - [Foldseek](https://github.com/steineggerlab/foldseek)
 
-Neither requires conda — pick whichever of these fits your setup:
-
-**macOS (Homebrew)**
+**macOS**
 ```bash
 brew install hmmer
-brew install brewsci/bio/foldseek   # foldseek isn't in homebrew-core, needs this tap
+brew install brewsci/bio/foldseek
 ```
 
-**Linux (Debian/Ubuntu)**
+**Linux**
 ```bash
-sudo apt install hmmer              # packaged directly; foldseek is not
-```
-Foldseek doesn't have a Linux package; grab its static binary instead (no
-root needed — this just unpacks a tarball and adds it to your `PATH`):
-```bash
-wget https://mmseqs.com/foldseek/foldseek-linux-avx2.tar.gz   # or foldseek-linux-arm64.tar.gz on ARM
+sudo apt install hmmer
+wget https://mmseqs.com/foldseek/foldseek-linux-avx2.tar.gz   # foldseek-linux-arm64.tar.gz on ARM
 tar xvzf foldseek-linux-avx2.tar.gz
-export PATH="$(pwd)/foldseek/bin:$PATH"   # add to your shell profile to keep it
+export PATH="$(pwd)/foldseek/bin:$PATH"
 ```
 
-**conda/mamba (any OS)**
+**conda/mamba**
 ```bash
 conda install -c conda-forge -c bioconda hmmer foldseek
 ```
-
-**HPC / shared cluster**: both tools are also published as
-[biocontainer](https://biocontainers.pro/) images
-(`quay.io/biocontainers/hmmer`, `quay.io/biocontainers/foldseek`) if
-Singularity/Apptainer is what's available to you instead of a package
-manager.
 
 ## Install
 
@@ -69,8 +57,7 @@ pytest
 
 ```bash
 # One-time: download the EVADES HMM profile library and structure
-# database from Zenodo, and build the local HMMER/Foldseek indexes
-# from them (~16 MB, cached under ~/.cache/evades-search).
+# database, and build the local HMMER/Foldseek indexes from them.
 evades-search fetch-db
 
 # Search protein sequences against the HMM profile library.
@@ -78,6 +65,9 @@ evades-search hmm my_proteins.fasta
 
 # Search a predicted structure against the Foldseek structure database.
 evades-search structure my_protein.pdb
+
+# Search many structures at once — files, directories, or both.
+evades-search structure my_protein.pdb another.cif my_structures_dir/
 ```
 
 Check what's installed and where the local database lives:
@@ -92,11 +82,11 @@ evades-search info
 `table`) and `-o/--output FILE` (default: stdout).
 
 - `hmm` columns: `query_name, adp, moa, defence, evalue, score, hmm_from, hmm_to, ali_from, ali_to`
-- `structure` columns: `query, adp, moa, defence, seq_identity, aln_len, prob, tm_score`
+- `structure` columns: `query, query_file, adp, moa, defence, seq_identity, aln_len, prob, tm_score`
 
 `adp` is the matched EVADES protein ID; `moa`/`defence` are its curated
-mode-of-action and inhibited-defence-system annotations, joined in from
-`metadata.tsv`.
+mode-of-action and inhibited-defence-system annotations. `query_file`
+is which input file a hit came from; `query` adds the chain.
 
 ## Search thresholds
 
@@ -105,41 +95,24 @@ mode-of-action and inhibited-defence-system annotations, joined in from
 | `hmm` E-value cutoff | `1e-3` | `-E/--evalue` |
 | `structure` minimum TM-score | `0.5` | `--tm-score-min` |
 
-`1e-3` and `0.5` are the defaults used by the EVADES website itself.
-TM-score `0.5` is the standard structural-biology convention for
-"generally the same fold" (Zhang & Skolnick, 2004); below ~0.17 is
-essentially random similarity. Raise or lower either flag for a
-stricter or looser cutoff than the website's default.
+These match the EVADES website's own defaults; raise or lower either
+flag for a stricter or looser cutoff.
 
-For structural search, chains/models belonging to the same multimeric
-or NMR-ensemble target are collapsed to one hit per protein, keeping
-the highest-confidence one.
+Chains/models belonging to the same multimeric or NMR-ensemble query
+structure are collapsed to one hit per protein, keeping the
+highest-confidence one. When searching many structures at once, this
+collapsing is per query file — two different files matching the same
+EVADES protein each keep their own hit.
 
 ## Updating the database
 
 By default, `fetch-db` pulls three files from a permanent Zenodo deposit
-(DOI: [10.5281/zenodo.22096345](https://doi.org/10.5281/zenodo.22096345)),
-independent of the EVADES website's own server: `hmm_profiles.tar.gz`,
-`metadata.tsv`, and `foldseek_monomer_structures.tar.gz`. Point it
-elsewhere with `--base-url` (or the `EVADES_SEARCH_BASE_URL`
-environment variable) — e.g. to pull from a different EVADES
-deployment instead.
+(DOI: [10.5281/zenodo.22096345](https://doi.org/10.5281/zenodo.22096345)):
+`hmm_profiles.tar.gz`, `metadata.tsv`, and
+`foldseek_monomer_structures.tar.gz`. Point it elsewhere with
+`--base-url` (or the `EVADES_SEARCH_BASE_URL` environment variable).
 
-That last file is deliberately **single-chain structures only, one per
-protein** — not the multimer/complex structures the EVADES website
-itself serves for bulk download. Several proteins were predicted in
-complex with their binding partner (e.g. a Cas effector, or a host
-defence protein they inhibit); building the Foldseek DB from those
-multimers directly causes false hits, since Foldseek indexes every
-chain separately and a query matching the *embedded partner protein* —
-not the EVADES protein itself — gets reported as a hit against it. If
-you want the full multimer/complex structures instead (for viewing,
-not for feeding to Foldseek), get those from the EVADES website's own
-bulk download, not this deposit.
-
-When the underlying dataset changes (new proteins added, corrected
-structures, etc.), a new version gets deposited to Zenodo and this
-default is updated to point at it; re-sync your local copy with:
+Re-sync your local copy after the dataset updates:
 
 ```bash
 evades-search fetch-db --force
@@ -157,12 +130,8 @@ EVADES: Encyclopaedia of bacterial virus anti-defence systems
 
 Khalimat Murtazalieva, Evangelos Karatzas, Jiawei Wang, Robert D. Finn
 
-The HMM profiles, metadata, and monomer structures this tool searches
-against are separately archived on Zenodo:
-[10.5281/zenodo.22096345](https://doi.org/10.5281/zenodo.22096345).
-(For the full multimer/complex structures, see the EVADES website's own
-bulk download instead — this deposit is scoped to what `evades-search`
-needs.)
+The database this tool searches against is separately archived on
+Zenodo: [10.5281/zenodo.22096345](https://doi.org/10.5281/zenodo.22096345).
 
 ## License
 
