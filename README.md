@@ -9,10 +9,6 @@ anti-defence systems) locally, using
 - `structure` takes one or more `.pdb`/`.cif` files, or a directory of
   them, including multi-chain/multimer structures.
 
-Results match the EVADES website's "Analyse" tab: same database, same
-default thresholds, same hit-collapsing rules for multimeric/NMR
-structures.
-
 ## Prerequisites
 
 - Python 3.9+
@@ -33,9 +29,22 @@ tar xvzf foldseek-linux-avx2.tar.gz
 export PATH="$(pwd)/foldseek/bin:$PATH"
 ```
 
-**conda/mamba**
+No root access (e.g. a shared cluster)? Build HMMER from source into your
+home directory instead:
 ```bash
-conda install -c conda-forge -c bioconda hmmer foldseek
+wget http://eddylab.org/software/hmmer/hmmer.tar.gz
+tar zxf hmmer.tar.gz && cd hmmer-*
+./configure --prefix="$HOME/.local"
+make && make install
+export PATH="$HOME/.local/bin:$PATH"
+```
+Foldseek's static binary above already needs no root.
+
+**conda/mamba** (creates a ready-to-use environment: Python, HMMER, Foldseek)
+```bash
+conda create -n evades-search -c conda-forge -c bioconda python=3.11 hmmer foldseek
+conda activate evades-search
+pip install .   # from a clone of this repo — see Install below
 ```
 
 ## Install
@@ -63,11 +72,11 @@ evades-search fetch-db
 # Search protein sequences against the HMM profile library.
 evades-search hmm my_proteins.fasta
 
-# Search a predicted structure against the Foldseek structure database.
+# Search a single predicted structure.
 evades-search structure my_protein.pdb
 
-# Search many structures at once — files, directories, or both.
-evades-search structure my_protein.pdb another.cif my_structures_dir/
+# Or search every structure in a directory at once, in one batched run.
+evades-search structure my_structures_dir/
 ```
 
 Check what's installed and where the local database lives:
@@ -78,8 +87,13 @@ evades-search info
 
 ## Output
 
-`hmm` and `structure` both accept `-f/--format table|tsv|json` (default
-`table`) and `-o/--output FILE` (default: stdout).
+`hmm` and `structure` both accept `-f/--format tsv|json|table` (default
+`tsv`) and `-o/--output FILE`.
+
+By default, results are written to a file next to the input — same
+name, extension swapped for the format (e.g. `my_protein.pdb` →
+`my_protein.tsv`; a directory input becomes `<dirname>.tsv` alongside
+it). Pass `-o` to name the file yourself, or `-o -` for stdout.
 
 - `hmm` columns: `query_name, adp, moa, defence, evalue, score, hmm_from, hmm_to, ali_from, ali_to`
 - `structure` columns: `query, query_file, adp, moa, defence, seq_identity, aln_len, prob, tm_score`

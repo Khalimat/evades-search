@@ -66,8 +66,7 @@ def cmd_hmm(args: argparse.Namespace) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
-    with _open_out(args.output) as out:
-        output.write(hits, output.HMM_COLUMNS, args.format, out)
+    _write_results(hits, output.HMM_COLUMNS, args, [args.fasta])
     return 0
 
 
@@ -83,8 +82,7 @@ def cmd_structure(args: argparse.Namespace) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
-    with _open_out(args.output) as out:
-        output.write(hits, output.FOLDSEEK_COLUMNS, args.format, out)
+    _write_results(hits, output.FOLDSEEK_COLUMNS, args, args.structure)
     return 0
 
 
@@ -109,18 +107,44 @@ def cmd_info(args: argparse.Namespace) -> int:
     return 0
 
 
-class _StdoutCtx:
-    def __enter__(self):
-        return sys.stdout
-
-    def __exit__(self, *exc):
-        return False
+_FORMAT_EXTENSIONS = {"tsv": "tsv", "json": "json", "table": "txt"}
 
 
-def _open_out(path: Path | None):
-    if path is None:
-        return _StdoutCtx()
-    return path.open("w")
+def _default_output_path(input_paths: list[Path], fmt: str) -> Path:
+    """Name the output file after the input when -o isn't given: same
+    name, extension swapped for the output format. Ambiguous with more
+    than one input path (e.g. a batch structure search over several
+    files/directories), so those fall back to a fixed generic name."""
+    ext = _FORMAT_EXTENSIONS[fmt]
+    if len(input_paths) == 1:
+        p = input_paths[0]
+        if p.is_dir():
+            return p.parent / f"{p.name}.{ext}"
+        return p.with_suffix(f".{ext}")
+    return Path(f"evades_search_results.{ext}")
+
+
+def _resolve_output_path(output_arg: Path | None, input_paths: list[Path], fmt: str) -> Path | None:
+    """None means stdout — either explicitly requested with `-o -`, or
+    (elsewhere) never reached because -o was omitted, in which case a
+    file path is auto-derived instead."""
+    if output_arg is not None and str(output_arg) == "-":
+        return None
+    if output_arg is not None:
+        return output_arg
+    return _default_output_path(input_paths, fmt)
+
+
+def _write_results(
+    hits: list[dict], columns: list[str], args: argparse.Namespace, input_paths: list[Path],
+) -> None:
+    output_path = _resolve_output_path(args.output, input_paths, args.format)
+    if output_path is None:
+        output.write(hits, columns, args.format, sys.stdout)
+        return
+    with output_path.open("w") as out:
+        output.write(hits, columns, args.format, out)
+    print(f"Wrote {len(hits)} hit(s) to {output_path}", file=sys.stderr)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -162,9 +186,11 @@ def build_parser() -> argparse.ArgumentParser:
         help=f"E-value cutoff (default: {hmm.DEFAULT_EVALUE}).",
     )
     p_hmm.add_argument("--cpu", type=int, default=2, help="Threads for hmmsearch (default: 2).")
-    p_hmm.add_argument("-f", "--format", choices=["table", "tsv", "json"], default="table")
+    p_hmm.add_argument("-f", "--format", choices=["table", "tsv", "json"], default="tsv")
     p_hmm.add_argument(
-        "-o", "--output", type=Path, default=None, help="Write to a file instead of stdout.",
+        "-o", "--output", type=Path, default=None,
+        help="Output file (default: input filename with its extension replaced, "
+             "e.g. my_proteins.tsv). Pass '-' for stdout instead.",
     )
     _add_db_override_args(p_hmm)
     p_hmm.set_defaults(func=cmd_hmm)
@@ -186,9 +212,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_struct.add_argument(
         "--threads", type=int, default=2, help="Threads for foldseek (default: 2).",
     )
-    p_struct.add_argument("-f", "--format", choices=["table", "tsv", "json"], default="table")
+    p_struct.add_argument("-f", "--format", choices=["table", "tsv", "json"], default="tsv")
     p_struct.add_argument(
-        "-o", "--output", type=Path, default=None, help="Write to a file instead of stdout.",
+        "-o", "--output", type=Path, default=None,
+        help="Output file (default: input filename with its extension replaced, "
+             "e.g. my_protein.tsv; a fixed name if searching multiple paths at "
+             "once). Pass '-' for stdout instead.",
     )
     _add_db_override_args(p_struct)
     p_struct.set_defaults(func=cmd_structure)
