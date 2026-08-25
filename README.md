@@ -87,11 +87,12 @@ evades-search info
 
 The database lives at `~/.cache/evades-search` by default. To use a
 different location without passing `--cache-dir` every time, set
-`EVADES_SEARCH_CACHE_DIR` (e.g. in your shell profile):
+`EVADES_SEARCH_CACHE_DIR` in your shell's startup file — `export` on
+its own only lasts for the current terminal session:
 
 ```bash
-export EVADES_SEARCH_CACHE_DIR=/path/to/somewhere
-evades-search fetch-db   # and every later command, automatically
+echo 'export EVADES_SEARCH_CACHE_DIR=/path/to/somewhere' >> ~/.zshrc   # ~/.bashrc for bash
+source ~/.zshrc   # or just open a new terminal
 ```
 
 ## Output
