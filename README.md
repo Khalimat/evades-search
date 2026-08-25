@@ -105,6 +105,12 @@ Know of an anti-defence protein that isn't in the database yet? Open an
 [issue](https://github.com/Khalimat/evades-search/issues) with the
 protein and a link to the paper describing it.
 
+## Cite us
+
+EVADES: Encyclopaedia of bacterial virus anti-defence systems
+
+Khalimat Murtazalieva, Evangelos Karatzas, Jiawei Wang, Robert D. Finn
+
 ## License
 
 MIT — see `LICENSE`.
