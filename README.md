@@ -1,6 +1,6 @@
 # evades-search
 
-Command-line search of the [EVADES](https://github.com/Khalimat/evades-webapp)
+Command-line search of the EVADES
 anti-defence protein database: an HMM profile search
 ([HMMER](http://hmmer.org/) `hmmsearch`) and a structural search
 ([Foldseek](https://github.com/steineggerlab/foldseek)), run locally and
@@ -70,7 +70,7 @@ pytest
 ```bash
 # One-time: download the EVADES HMM profile library and structure
 # database from Zenodo, and build the local HMMER/Foldseek indexes
-# from them (~50 MB, cached under ~/.cache/evades-search).
+# from them (~16 MB, cached under ~/.cache/evades-search).
 evades-search fetch-db
 
 # Search protein sequences against the HMM profile library.
@@ -117,12 +117,25 @@ the highest-confidence one.
 
 ## Updating the database
 
-By default, `fetch-db` pulls from a permanent Zenodo deposit of the
-bulk-download files (DOI: [10.5281/zenodo.22096345](https://doi.org/10.5281/zenodo.22096345)),
-independent of the EVADES website's own server. Point it elsewhere with
-`--base-url` (or the `EVADES_SEARCH_BASE_URL` environment variable) —
-e.g. to pull from a different EVADES deployment's own `/downloads/`
-directory instead.
+By default, `fetch-db` pulls three files from a permanent Zenodo deposit
+(DOI: [10.5281/zenodo.22096345](https://doi.org/10.5281/zenodo.22096345)),
+independent of the EVADES website's own server: `hmm_profiles.tar.gz`,
+`metadata.tsv`, and `foldseek_monomer_structures.tar.gz`. Point it
+elsewhere with `--base-url` (or the `EVADES_SEARCH_BASE_URL`
+environment variable) — e.g. to pull from a different EVADES
+deployment instead.
+
+That last file is deliberately **single-chain structures only, one per
+protein** — not the multimer/complex structures the EVADES website
+itself serves for bulk download. Several proteins were predicted in
+complex with their binding partner (e.g. a Cas effector, or a host
+defence protein they inhibit); building the Foldseek DB from those
+multimers directly causes false hits, since Foldseek indexes every
+chain separately and a query matching the *embedded partner protein* —
+not the EVADES protein itself — gets reported as a hit against it. If
+you want the full multimer/complex structures instead (for viewing,
+not for feeding to Foldseek), get those from the EVADES website's own
+bulk download, not this deposit.
 
 When the underlying dataset changes (new proteins added, corrected
 structures, etc.), a new version gets deposited to Zenodo and this
@@ -144,8 +157,12 @@ EVADES: Encyclopaedia of bacterial virus anti-defence systems
 
 Khalimat Murtazalieva, Evangelos Karatzas, Jiawei Wang, Robert D. Finn
 
-The underlying database is separately archived on Zenodo:
+The HMM profiles, metadata, and monomer structures this tool searches
+against are separately archived on Zenodo:
 [10.5281/zenodo.22096345](https://doi.org/10.5281/zenodo.22096345).
+(For the full multimer/complex structures, see the EVADES website's own
+bulk download instead — this deposit is scoped to what `evades-search`
+needs.)
 
 ## License
 

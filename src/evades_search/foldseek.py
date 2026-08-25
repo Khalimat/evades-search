@@ -1,8 +1,7 @@
 """Structural search (Foldseek) against the EVADES structure database —
-the same query the web app's Analyse tab runs server-side (see
-`backend/app/tasks.py::run_foldseek` in the evades-webapp repo). Ported
-here so a local run against the same database produces the same hits,
-including the TM-score filter and the multi-model/multi-chain
+the same query the EVADES website's Analyse tab runs server-side.
+Ported here so a local run against the same database produces the same
+hits, including the TM-score filter and the multi-model/multi-chain
 collapsing logic.
 """
 from __future__ import annotations

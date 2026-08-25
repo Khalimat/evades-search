@@ -1,8 +1,7 @@
 """HMM profile search (HMMER `hmmsearch`) against the EVADES profile
-library — the same query the web app's Analyse tab runs server-side
-(see `backend/app/tasks.py::run_hmmsearch` in the evades-webapp repo).
-Ported here so a local run against the same database produces the same
-hits, with the same E-value cutoff and column set.
+library — the same query the EVADES website's Analyse tab runs
+server-side. Ported here so a local run against the same database
+produces the same hits, with the same E-value cutoff and column set.
 """
 from __future__ import annotations
 

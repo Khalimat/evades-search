@@ -1,9 +1,11 @@
 """Fetches and builds the local copy of the EVADES search databases from
-the same bulk-download files the EVADES website itself serves
-(`data/downloads/{hmm_profiles.tar.gz,predicted_structures.tar.gz,metadata.tsv}`
-in the evades-webapp repo, published at `<base_url>/`). Caches the built
-HMMER and Foldseek indexes under a local cache directory so repeat runs
-don't re-download or re-build anything.
+a permanent Zenodo deposit: `hmm_profiles.tar.gz`, metadata.tsv, and
+`foldseek_monomer_structures.tar.gz` — a single chain per protein,
+deliberately not the multimer/complex structures the EVADES website
+serves for bulk download (building the Foldseek DB from multimers
+causes false cross-matches via embedded partner chains). Caches the
+built HMMER and Foldseek indexes under a local cache directory so
+repeat runs don't re-download or re-build anything.
 """
 from __future__ import annotations
 
@@ -11,20 +13,23 @@ import os
 import shutil
 import subprocess
 import tarfile
+import time
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 
 DEFAULT_BASE_URL = "https://zenodo.org/records/22096345/files"
-# ^ permanent Zenodo deposit of the EVADES bulk-download files
+# ^ permanent Zenodo deposit of the EVADES search-database files
 # (DOI: 10.5281/zenodo.22096345), independent of the live website's
 # server. Override with --base-url / EVADES_SEARCH_BASE_URL to pull
 # from a different EVADES deployment instead (e.g. a fork's own
-# /downloads/ directory).
+# /downloads/ directory) — note such a fork would need to serve a
+# monomer structures archive under this same filename, not its
+# multimer bulk-download file.
 
 _HMM_ARCHIVE = "hmm_profiles.tar.gz"
-_STRUCTURES_ARCHIVE = "predicted_structures.tar.gz"
+_STRUCTURES_ARCHIVE = "foldseek_monomer_structures.tar.gz"
 _METADATA_FILE = "metadata.tsv"
 
 
@@ -68,13 +73,34 @@ class FetchError(RuntimeError):
     pass
 
 
-def _download(url: str, dest: Path) -> None:
+_DOWNLOAD_RETRIES = 3
+_DOWNLOAD_BACKOFF_SECONDS = 3.0
+
+
+def _download(url: str, dest: Path, *, progress=lambda msg: None) -> None:
+    """Download `url` to `dest`, retrying transient server-side failures
+    (5xx, connection drops) with backoff — Zenodo's gateway occasionally
+    504s on an otherwise-fine URL. Client errors (404, etc.) fail
+    immediately since retrying won't fix those."""
     dest.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        with urllib.request.urlopen(url, timeout=60) as resp, dest.open("wb") as f:
-            shutil.copyfileobj(resp, f)
-    except URLError as exc:
-        raise FetchError(f"failed to download {url}: {exc}") from exc
+    for attempt in range(1, _DOWNLOAD_RETRIES + 1):
+        try:
+            with urllib.request.urlopen(url, timeout=60) as resp, dest.open("wb") as f:
+                shutil.copyfileobj(resp, f)
+            return
+        except HTTPError as exc:
+            if exc.code < 500 or attempt == _DOWNLOAD_RETRIES:
+                raise FetchError(f"failed to download {url}: {exc}") from exc
+        except URLError as exc:
+            if attempt == _DOWNLOAD_RETRIES:
+                raise FetchError(f"failed to download {url}: {exc}") from exc
+
+        wait = _DOWNLOAD_BACKOFF_SECONDS * attempt
+        progress(
+            f"  download failed (attempt {attempt}/{_DOWNLOAD_RETRIES}), "
+            f"retrying in {wait:.0f}s ..."
+        )
+        time.sleep(wait)
 
 
 def _prune_junk_files(directory: Path) -> None:
@@ -144,13 +170,13 @@ def fetch(
     structures_archive = paths.raw_dir / _STRUCTURES_ARCHIVE
 
     progress(f"Downloading {_HMM_ARCHIVE} from {base_url} ...")
-    _download(f"{base_url}/{_HMM_ARCHIVE}", hmm_archive)
+    _download(f"{base_url}/{_HMM_ARCHIVE}", hmm_archive, progress=progress)
 
     progress(f"Downloading {_STRUCTURES_ARCHIVE} from {base_url} ...")
-    _download(f"{base_url}/{_STRUCTURES_ARCHIVE}", structures_archive)
+    _download(f"{base_url}/{_STRUCTURES_ARCHIVE}", structures_archive, progress=progress)
 
     progress(f"Downloading {_METADATA_FILE} from {base_url} ...")
-    _download(f"{base_url}/{_METADATA_FILE}", paths.metadata_tsv)
+    _download(f"{base_url}/{_METADATA_FILE}", paths.metadata_tsv, progress=progress)
 
     progress("Building HMMER profile database (hmmpress) ...")
     hmm_extract_dir = paths.cache_dir / "_hmm_extract"
