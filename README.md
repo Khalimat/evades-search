@@ -64,6 +64,21 @@ pytest
 
 ## Quickstart
 
+The database downloads to `~/.cache/evades-search` by default. To use a
+different location instead, set `EVADES_SEARCH_CACHE_DIR` *before*
+running `fetch-db` — a plain `export` only lasts for the current
+terminal session, so add it to your shell's startup file to make it
+stick:
+
+```bash
+echo 'export EVADES_SEARCH_CACHE_DIR=/path/to/somewhere' >> ~/.zshrc && source ~/.zshrc
+```
+
+(zsh shown above — it's the default shell on current macOS; run
+`echo $SHELL` if you're not sure which you're on. bash: same line, but
+in `~/.bashrc`. fish: no file to edit, just run
+`set -Ux EVADES_SEARCH_CACHE_DIR /path/to/somewhere` once.)
+
 ```bash
 # One-time: download the EVADES HMM profile library and structure
 # database, and build the local HMMER/Foldseek indexes from them.
@@ -84,21 +99,6 @@ Check what's installed and where the local database lives:
 ```bash
 evades-search info
 ```
-
-The database lives at `~/.cache/evades-search` by default. To use a
-different location without passing `--cache-dir` every time, set
-`EVADES_SEARCH_CACHE_DIR` — `export` on its own only lasts for the
-current terminal session, so make it persist instead:
-
-| Shell | How to make it persist |
-|---|---|
-| bash | append `export EVADES_SEARCH_CACHE_DIR=...` to `~/.bashrc` (Linux) or `~/.bash_profile` (macOS) |
-| zsh (default on current macOS) | append the same `export` line to `~/.zshrc` |
-| fish | `set -Ux EVADES_SEARCH_CACHE_DIR /path/to/somewhere` once — no file to edit, it persists on its own |
-
-Not sure which you're on? Run `echo $SHELL`. For bash/zsh, either open
-a new terminal or re-run the startup file in your current one (e.g.
-`source ~/.zshrc`) to pick it up immediately.
 
 ## Output
 
