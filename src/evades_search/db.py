@@ -16,10 +16,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from urllib.error import URLError
 
-DEFAULT_BASE_URL = "https://167-233-198-65.sslip.io/downloads"
-# ^ the live EVADES server's bulk-download directory (see OPERATIONS.md
-# in evades-webapp). Override with --base-url / EVADES_SEARCH_BASE_URL
-# if the site moves to a different host.
+DEFAULT_BASE_URL = "https://zenodo.org/records/22096345/files"
+# ^ permanent Zenodo deposit of the EVADES bulk-download files
+# (DOI: 10.5281/zenodo.22096345), independent of the live website's
+# server. Override with --base-url / EVADES_SEARCH_BASE_URL to pull
+# from a different EVADES deployment instead (e.g. a fork's own
+# /downloads/ directory).
 
 _HMM_ARCHIVE = "hmm_profiles.tar.gz"
 _STRUCTURES_ARCHIVE = "predicted_structures.tar.gz"

@@ -16,10 +16,39 @@ structures.
 ## Prerequisites
 
 - Python 3.9+
-- [HMMER](http://hmmer.org/) (`hmmsearch`, `hmmpress`):
-  `brew install hmmer` or `conda install -c bioconda hmmer`
-- [Foldseek](https://github.com/steineggerlab/foldseek):
-  `brew install brewsci/bio/foldseek` or `conda install -c bioconda foldseek`
+- [HMMER](http://hmmer.org/) (`hmmsearch`, `hmmpress`)
+- [Foldseek](https://github.com/steineggerlab/foldseek)
+
+Neither requires conda — pick whichever of these fits your setup:
+
+**macOS (Homebrew)**
+```bash
+brew install hmmer
+brew install brewsci/bio/foldseek   # foldseek isn't in homebrew-core, needs this tap
+```
+
+**Linux (Debian/Ubuntu)**
+```bash
+sudo apt install hmmer              # packaged directly; foldseek is not
+```
+Foldseek doesn't have a Linux package; grab its static binary instead (no
+root needed — this just unpacks a tarball and adds it to your `PATH`):
+```bash
+wget https://mmseqs.com/foldseek/foldseek-linux-avx2.tar.gz   # or foldseek-linux-arm64.tar.gz on ARM
+tar xvzf foldseek-linux-avx2.tar.gz
+export PATH="$(pwd)/foldseek/bin:$PATH"   # add to your shell profile to keep it
+```
+
+**conda/mamba (any OS)**
+```bash
+conda install -c conda-forge -c bioconda hmmer foldseek
+```
+
+**HPC / shared cluster**: both tools are also published as
+[biocontainer](https://biocontainers.pro/) images
+(`quay.io/biocontainers/hmmer`, `quay.io/biocontainers/foldseek`) if
+Singularity/Apptainer is what's available to you instead of a package
+manager.
 
 ## Install
 
@@ -40,8 +69,8 @@ pytest
 
 ```bash
 # One-time: download the EVADES HMM profile library and structure
-# database, and build the local HMMER/Foldseek indexes from them
-# (~50 MB, cached under ~/.cache/evades-search).
+# database from Zenodo, and build the local HMMER/Foldseek indexes
+# from them (~50 MB, cached under ~/.cache/evades-search).
 evades-search fetch-db
 
 # Search protein sequences against the HMM profile library.
@@ -88,16 +117,20 @@ the highest-confidence one.
 
 ## Updating the database
 
-The EVADES database occasionally changes as new proteins are added.
-Re-sync your local copy with:
+By default, `fetch-db` pulls from a permanent Zenodo deposit of the
+bulk-download files (DOI: [10.5281/zenodo.22096345](https://doi.org/10.5281/zenodo.22096345)),
+independent of the EVADES website's own server. Point it elsewhere with
+`--base-url` (or the `EVADES_SEARCH_BASE_URL` environment variable) —
+e.g. to pull from a different EVADES deployment's own `/downloads/`
+directory instead.
+
+When the underlying dataset changes (new proteins added, corrected
+structures, etc.), a new version gets deposited to Zenodo and this
+default is updated to point at it; re-sync your local copy with:
 
 ```bash
 evades-search fetch-db --force
 ```
-
-By default this pulls from the live EVADES server; point it elsewhere
-with `--base-url` (or the `EVADES_SEARCH_BASE_URL` environment variable)
-if the site moves.
 
 ## Suggesting new entries
 
@@ -110,6 +143,9 @@ protein and a link to the paper describing it.
 EVADES: Encyclopaedia of bacterial virus anti-defence systems
 
 Khalimat Murtazalieva, Evangelos Karatzas, Jiawei Wang, Robert D. Finn
+
+The underlying database is separately archived on Zenodo:
+[10.5281/zenodo.22096345](https://doi.org/10.5281/zenodo.22096345).
 
 ## License
 
