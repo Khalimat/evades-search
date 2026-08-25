@@ -15,9 +15,18 @@ def _add_db_override_args(parser: argparse.ArgumentParser) -> None:
         help="Where the local database lives (default: ~/.cache/evades-search, "
              "or $XDG_CACHE_HOME/evades-search).",
     )
-    parser.add_argument("--hmm-db", type=Path, default=None, help="Override path to the hmmpress'd HMM library.")
-    parser.add_argument("--foldseek-db", type=Path, default=None, help="Override path to the Foldseek database.")
-    parser.add_argument("--metadata", type=Path, default=None, help="Override path to metadata.tsv.")
+    parser.add_argument(
+        "--hmm-db", type=Path, default=None,
+        help="Override path to the hmmpress'd HMM library.",
+    )
+    parser.add_argument(
+        "--foldseek-db", type=Path, default=None,
+        help="Override path to the Foldseek database.",
+    )
+    parser.add_argument(
+        "--metadata", type=Path, default=None,
+        help="Override path to metadata.tsv.",
+    )
 
 
 def _resolve_paths(args: argparse.Namespace) -> db.Paths:
@@ -81,10 +90,13 @@ def cmd_structure(args: argparse.Namespace) -> int:
 
 def cmd_info(args: argparse.Namespace) -> int:
     paths = _resolve_paths(args)
+    def status(found: bool) -> str:
+        return "[found]" if found else "[missing]"
+
     print(f"cache dir:    {paths.cache_dir}")
-    print(f"HMM db:       {paths.hmm_db}  {'[found]' if paths.hmm_db.exists() else '[missing]'}")
-    print(f"foldseek db:  {paths.foldseek_db}  {'[found]' if Path(str(paths.foldseek_db)).exists() else '[missing]'}")
-    print(f"metadata.tsv: {paths.metadata_tsv}  {'[found]' if paths.metadata_tsv.exists() else '[missing]'}")
+    print(f"HMM db:       {paths.hmm_db}  {status(paths.hmm_db.exists())}")
+    print(f"foldseek db:  {paths.foldseek_db}  {status(Path(str(paths.foldseek_db)).exists())}")
+    print(f"metadata.tsv: {paths.metadata_tsv}  {status(paths.metadata_tsv.exists())}")
     print()
     print(f"hmmsearch on PATH: {'yes' if hmm.hmmsearch_available() else 'no'}")
     print(f"foldseek on PATH:  {'yes' if foldseek.foldseek_available() else 'no'}")
@@ -121,32 +133,57 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     default_base_url = os.environ.get("EVADES_SEARCH_BASE_URL", db.DEFAULT_BASE_URL)
-    p_fetch = sub.add_parser("fetch-db", help="Download and build the local EVADES search databases.")
-    p_fetch.add_argument("--base-url", default=default_base_url,
-                          help=f"Base URL to fetch bulk-download files from (default: {default_base_url}; "
-                               "also settable via $EVADES_SEARCH_BASE_URL).")
-    p_fetch.add_argument("--cache-dir", type=Path, default=None,
-                          help="Where to store the built database (default: ~/.cache/evades-search).")
-    p_fetch.add_argument("--force", action="store_true", help="Re-download and rebuild even if already present.")
+    p_fetch = sub.add_parser(
+        "fetch-db", help="Download and build the local EVADES search databases.",
+    )
+    p_fetch.add_argument(
+        "--base-url", default=default_base_url,
+        help=(
+            f"Base URL to fetch bulk-download files from (default: {default_base_url}; "
+            "also settable via $EVADES_SEARCH_BASE_URL)."
+        ),
+    )
+    p_fetch.add_argument(
+        "--cache-dir", type=Path, default=None,
+        help="Where to store the built database (default: ~/.cache/evades-search).",
+    )
+    p_fetch.add_argument(
+        "--force", action="store_true",
+        help="Re-download and rebuild even if already present.",
+    )
     p_fetch.set_defaults(func=cmd_fetch_db)
 
-    p_hmm = sub.add_parser("hmm", help="Search a protein FASTA against the EVADES HMM profile library.")
+    p_hmm = sub.add_parser(
+        "hmm", help="Search a protein FASTA against the EVADES HMM profile library.",
+    )
     p_hmm.add_argument("fasta", type=Path, help="Multi-FASTA of protein sequences to search.")
-    p_hmm.add_argument("-E", "--evalue", type=float, default=hmm.DEFAULT_EVALUE,
-                        help=f"E-value cutoff (default: {hmm.DEFAULT_EVALUE}).")
+    p_hmm.add_argument(
+        "-E", "--evalue", type=float, default=hmm.DEFAULT_EVALUE,
+        help=f"E-value cutoff (default: {hmm.DEFAULT_EVALUE}).",
+    )
     p_hmm.add_argument("--cpu", type=int, default=2, help="Threads for hmmsearch (default: 2).")
     p_hmm.add_argument("-f", "--format", choices=["table", "tsv", "json"], default="table")
-    p_hmm.add_argument("-o", "--output", type=Path, default=None, help="Write to a file instead of stdout.")
+    p_hmm.add_argument(
+        "-o", "--output", type=Path, default=None, help="Write to a file instead of stdout.",
+    )
     _add_db_override_args(p_hmm)
     p_hmm.set_defaults(func=cmd_hmm)
 
-    p_struct = sub.add_parser("structure", help="Search a predicted structure against the EVADES Foldseek database.")
+    p_struct = sub.add_parser(
+        "structure", help="Search a predicted structure against the EVADES Foldseek database.",
+    )
     p_struct.add_argument("structure", type=Path, help="Query structure file (.pdb or .cif).")
-    p_struct.add_argument("--tm-score-min", type=float, default=foldseek.DEFAULT_TM_SCORE_MIN,
-                           help=f"Minimum TM-score to keep a hit (default: {foldseek.DEFAULT_TM_SCORE_MIN}).")
-    p_struct.add_argument("--threads", type=int, default=2, help="Threads for foldseek (default: 2).")
+    p_struct.add_argument(
+        "--tm-score-min", type=float, default=foldseek.DEFAULT_TM_SCORE_MIN,
+        help=f"Minimum TM-score to keep a hit (default: {foldseek.DEFAULT_TM_SCORE_MIN}).",
+    )
+    p_struct.add_argument(
+        "--threads", type=int, default=2, help="Threads for foldseek (default: 2).",
+    )
     p_struct.add_argument("-f", "--format", choices=["table", "tsv", "json"], default="table")
-    p_struct.add_argument("-o", "--output", type=Path, default=None, help="Write to a file instead of stdout.")
+    p_struct.add_argument(
+        "-o", "--output", type=Path, default=None, help="Write to a file instead of stdout.",
+    )
     _add_db_override_args(p_struct)
     p_struct.set_defaults(func=cmd_structure)
 

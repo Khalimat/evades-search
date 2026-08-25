@@ -95,10 +95,14 @@ def _safe_extract(archive: Path, dest: Path) -> None:
     `dest` (defends against a malicious/corrupt archive using `../`
     paths — Python's tarfile doesn't guard against this by default)."""
     dest.mkdir(parents=True, exist_ok=True)
+    dest_resolved = dest.resolve()
     with tarfile.open(archive) as tf:
         for member in tf.getmembers():
             member_path = (dest / member.name).resolve()
-            if not str(member_path).startswith(str(dest.resolve()) + os.sep) and member_path != dest.resolve():
+            inside_dest = member_path == dest_resolved or str(member_path).startswith(
+                str(dest_resolved) + os.sep
+            )
+            if not inside_dest:
                 raise FetchError(f"refusing to extract unsafe path from archive: {member.name}")
         tf.extractall(dest)
 
