@@ -85,6 +85,15 @@ Check what's installed and where the local database lives:
 evades-search info
 ```
 
+The database lives at `~/.cache/evades-search` by default. To use a
+different location without passing `--cache-dir` every time, set
+`EVADES_SEARCH_CACHE_DIR` (e.g. in your shell profile):
+
+```bash
+export EVADES_SEARCH_CACHE_DIR=/path/to/somewhere
+evades-search fetch-db   # and every later command, automatically
+```
+
 ## Output
 
 `hmm` and `structure` both accept `-f/--format tsv|json|table` (default

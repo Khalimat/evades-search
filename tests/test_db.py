@@ -6,6 +6,20 @@ from urllib.error import HTTPError, URLError
 from evades_search import db
 
 
+def test_default_cache_dir_prefers_evades_search_cache_dir_env(monkeypatch, tmp_path):
+    monkeypatch.setenv("EVADES_SEARCH_CACHE_DIR", str(tmp_path / "custom"))
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "xdg"))  # lower priority, ignored
+
+    assert db.default_cache_dir() == tmp_path / "custom"
+
+
+def test_default_cache_dir_falls_back_to_xdg_cache_home(monkeypatch, tmp_path):
+    monkeypatch.delenv("EVADES_SEARCH_CACHE_DIR", raising=False)
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "xdg"))
+
+    assert db.default_cache_dir() == tmp_path / "xdg" / "evades-search"
+
+
 def _make_archive_with_junk(tmp_path):
     archive = tmp_path / "structures.tar.gz"
     real = tmp_path / "protA.pdb"

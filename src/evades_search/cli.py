@@ -13,7 +13,8 @@ def _add_db_override_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--cache-dir", type=Path, default=None,
         help="Where the local database lives (default: ~/.cache/evades-search, "
-             "or $XDG_CACHE_HOME/evades-search).",
+             "or $XDG_CACHE_HOME/evades-search). Also settable via "
+             "$EVADES_SEARCH_CACHE_DIR, to avoid passing this every time.",
     )
     parser.add_argument(
         "--hmm-db", type=Path, default=None,
@@ -169,7 +170,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_fetch.add_argument(
         "--cache-dir", type=Path, default=None,
-        help="Where to store the built database (default: ~/.cache/evades-search).",
+        help="Where to store the built database (default: ~/.cache/evades-search). "
+             "Also settable via $EVADES_SEARCH_CACHE_DIR.",
     )
     p_fetch.add_argument(
         "--force", action="store_true",

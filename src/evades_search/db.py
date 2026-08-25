@@ -44,6 +44,13 @@ class Paths:
 
 
 def default_cache_dir() -> Path:
+    """Where the local database lives when --cache-dir isn't passed.
+    $EVADES_SEARCH_CACHE_DIR, if set, points at the directory directly
+    (no "evades-search" suffix appended) — set it once (e.g. in your
+    shell profile) to avoid passing --cache-dir on every command."""
+    env = os.environ.get("EVADES_SEARCH_CACHE_DIR")
+    if env:
+        return Path(env)
     xdg = os.environ.get("XDG_CACHE_HOME")
     base = Path(xdg) if xdg else Path.home() / ".cache"
     return base / "evades-search"
