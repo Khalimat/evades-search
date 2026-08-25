@@ -14,7 +14,7 @@ from pathlib import Path
 
 from .metadata import Metadata
 
-DEFAULT_EVALUE = 1e-5  # matches the web app; not every profile has a
+DEFAULT_EVALUE = 1e-3  # matches the web app; not every profile has a
                         # curated gathering (GA) threshold, so -E is
                         # used instead of --cut_ga
 _PROFILE_SUFFIX_RE = re.compile(r"\.aln$")

@@ -1,20 +1,17 @@
 # evades-search
 
-Command-line tool to run the same two searches as the EVADES website's
-"Analyse" tab — an HMM profile search ([HMMER](http://hmmer.org/)
-`hmmsearch`) and a structural search ([Foldseek](https://github.com/steineggerlab/foldseek))
-— against the EVADES anti-defence protein database, locally and offline
-after a one-time database download. No account, no upload, no size
-limits beyond your own machine.
+Command-line search of the [EVADES](https://github.com/Khalimat/evades-webapp)
+anti-defence protein database: an HMM profile search
+([HMMER](http://hmmer.org/) `hmmsearch`) and a structural search
+([Foldseek](https://github.com/steineggerlab/foldseek)), run locally and
+offline against a downloaded copy of the database. No account, no
+upload, no size limits beyond your own machine — useful for batch
+searches, pipeline integration, or working with sequences/structures you
+don't want to upload anywhere.
 
-This exists in response to a reviewer question on the EVADES manuscript
-about whether users could run their own searches against the database
-outside the website (in the spirit of tools like
-[DefenseFinder](https://github.com/mdmparis/defense-finder)). It ports
-the exact search logic from the website's backend
-(`backend/app/tasks.py` in the `evades-webapp` repo), so a local run
-against the same database produces the same hits as uploading the same
-file on the website.
+Results match the EVADES website's "Analyse" tab: same database, same
+default thresholds, same hit-collapsing rules for multimeric/NMR
+structures.
 
 ## Prerequisites
 
@@ -25,8 +22,6 @@ file on the website.
   `brew install brewsci/bio/foldseek` or `conda install -c bioconda foldseek`
 
 ## Install
-
-From a clone of this repo:
 
 ```bash
 pipx install .        # isolated install, puts `evades-search` on your PATH
@@ -45,9 +40,8 @@ pytest
 
 ```bash
 # One-time: download the EVADES HMM profile library and structure
-# database (the same files served at /downloads/ on the EVADES website)
-# and build the local HMMER/Foldseek indexes from them (~50 MB, cached
-# under ~/.cache/evades-search).
+# database, and build the local HMMER/Foldseek indexes from them
+# (~50 MB, cached under ~/.cache/evades-search).
 evades-search fetch-db
 
 # Search protein sequences against the HMM profile library.
@@ -73,21 +67,28 @@ evades-search info
 
 `adp` is the matched EVADES protein ID; `moa`/`defence` are its curated
 mode-of-action and inhibited-defence-system annotations, joined in from
-the same `metadata.tsv` the website uses.
+`metadata.tsv`.
 
-## Matching the website's results
+## Search thresholds
 
-Thresholds are the same as the website by default: E-value ≤ 1e-5 for
-`hmm`, TM-score ≥ 0.5 for `structure` (the standard "same fold"
-convention, Zhang & Skolnick 2004). Both are overridable
-(`--evalue`, `--tm-score-min`) if you want a looser or stricter cutoff
-than the website uses. For structural search, chains/models belonging
-to the same multimeric or NMR-ensemble target are collapsed to one hit
-per protein, keeping the highest-confidence one — same as the website.
+| | default | flag |
+|---|---|---|
+| `hmm` E-value cutoff | `1e-3` | `-E/--evalue` |
+| `structure` minimum TM-score | `0.5` | `--tm-score-min` |
+
+`1e-3` and `0.5` are the defaults used by the EVADES website itself.
+TM-score `0.5` is the standard structural-biology convention for
+"generally the same fold" (Zhang & Skolnick, 2004); below ~0.17 is
+essentially random similarity. Raise or lower either flag for a
+stricter or looser cutoff than the website's default.
+
+For structural search, chains/models belonging to the same multimeric
+or NMR-ensemble target are collapsed to one hit per protein, keeping
+the highest-confidence one.
 
 ## Updating the database
 
-The website's database occasionally changes as new proteins are added.
+The EVADES database occasionally changes as new proteins are added.
 Re-sync your local copy with:
 
 ```bash
@@ -97,6 +98,12 @@ evades-search fetch-db --force
 By default this pulls from the live EVADES server; point it elsewhere
 with `--base-url` (or the `EVADES_SEARCH_BASE_URL` environment variable)
 if the site moves.
+
+## Suggesting new entries
+
+Know of an anti-defence protein that isn't in the database yet? Open an
+[issue](https://github.com/Khalimat/evades-search/issues) with the
+protein and a link to the paper describing it.
 
 ## License
 
